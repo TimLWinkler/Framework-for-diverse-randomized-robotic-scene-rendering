@@ -7,7 +7,6 @@ from evaluation import *
 from inputHandler import *
 
 
-#      TODO's:
 # position check (clipping) but its not in focus for the project
 
 def main(sceneIndex):
