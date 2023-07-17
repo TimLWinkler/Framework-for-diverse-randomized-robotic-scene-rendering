@@ -2,6 +2,8 @@ import nvisii as nv
 import colorsys
 import random
 import os
+
+import variables
 from variables import *
 
 
@@ -28,12 +30,12 @@ def createCamera(fov, eyeX, eyeY, eyeZ):
         camera=nv.camera.create_from_fov(
             name='camera',
             field_of_view=fov,
-            aspect=1
+            aspect=float(renWidth) / float(renHeight)
         )
     )
     nv.set_camera_entity(camera)
     camera.get_transform().look_at(
-        at=[-1, 0, 0],
+        at=[0, 0, .75],
         up=[0, 0, 1],
         eye=[eyeX, eyeY, eyeZ]
     )
@@ -41,21 +43,27 @@ def createCamera(fov, eyeX, eyeY, eyeZ):
 
 # scans how many elements (dir doesn't count) are given in the explicit directory
 # and returns a list of them
-def scanDir(dir, fileFlag) -> [] :
+def scanDir(dir, fileFlag) -> []:
     res = []
     for path in os.listdir(dir):
-            if os.path.isfile(os.path.join(dir, path)) and fileFlag:
-                res.append(path)
-            elif os.path.isdir(os.path.join(dir, path)) and not fileFlag:
-                res.append(path)
+        if os.path.isfile(os.path.join(dir, path)) and fileFlag:
+            res.append(path)
+        elif os.path.isdir(os.path.join(dir, path)) and not fileFlag:
+            res.append(path)
     return res
 
 
-# setup dome image via hdr file
+# set up dome image via hdr file
 def setDome(hdr, cdf):
     path = "./HDRs/" + hdr
     dome = nv.texture.create_from_file("dome", path)
     nv.set_dome_light_texture(dome, enable_cdf=cdf)
+
+
+# set up the dome if there are no HDR's -> randomly generated sky will be background
+def setDomeSky():
+    sky_x, sky_y, sky_z = rng.choice(30, 3, False)
+    nv.set_dome_light_sky([sky_x - 15, sky_y - 15, sky_z - 8], [sky_x/3 - 3, sky_y/3 - 3, sky_z/3 - 3], rng.random(1), rng.random(1))
 
 
 # set up function to create lights and objects of given amount
@@ -63,7 +71,7 @@ def setDome(hdr, cdf):
 def doLightsAndObjects(lightCount, objectCount):
     print("\n-- creating lights:")
     if lightCount == None:
-        rng_light = rng.choice(maxLights, size=1, replace=False)[0] + 1
+        rng_light = rng.choice(variables.maxLights, size=1, replace=False)[0] + 1
         for i in range(rng_light):
             createLight(i)
     else:
@@ -72,29 +80,18 @@ def doLightsAndObjects(lightCount, objectCount):
 
     print("\n-- creating objects")
     if objectCount == None:
-        rng_obj = rng.choice(maxObjects, size=1, replace=False)[0] + 3
-        matArray = getMatArray(rng_obj)
-        a = numpy.arange(0, 180, 180 / rng_obj, dtype=int)
-        for i in range(rng_obj):
-            h = a[i]
-            t = rng.choice(10, size=1, replace=False)[0]
-            if len(matArray) > 0:
-                createObj(t, i, h, matArray.pop(0))
-            else:
-                createObj(t, i, h, None)
-    else:
-        for i in range(objectCount):
-            matArray = getMatArray(objectCount)
-            a = numpy.arange(0, 180, 180 / objectCount, dtype=int)
-            h = a[i]
-            t = rng.choice(10, size=1, replace=False)[0]
-            if len(matArray) > 0:
-                createObj(t, i, h, matArray.pop(0))
-            else:
-                createObj(t, i, h, None)
+        objectCount = rng.choice(variables.maxObjects, size=1, replace=False)[0] + 2
+    matArray = getMatArray(objectCount)
+    a = numpy.arange(0, 180, 180 / objectCount, dtype=int)
+    for i in range(objectCount):
+        h = a[i]
+        t = rng.choice(10, size=1, replace=False)[0]
+        if len(matArray) > 0:
+            createObj(t, i, h, matArray.pop(0))
+        else:
+            createObj(t, i, h, None)
 
 
-            # create robo arms
 def createRoboArm():
     roboArray = scanDir("./objects/roboArm", True)
     # Left arm
@@ -103,6 +100,9 @@ def createRoboArm():
     roboLeft = importFile(path_left, 1.5, 0, 0, 3, 0, 0, 1)
     # right arm
     roboright_rng = rng.choice(len(roboArray), size=1, replace=False)[0]
+    if roboright_rng == roboleft_rng:
+        # we just pick again if the right arm is the same as left arm
+        roboright_rng = rng.choice(len(roboArray), size=1, replace=False)[0]
     path_right = "./objects/roboArm/" + roboArray[roboright_rng]
     roboRight = importFile(path_right, -1.5, 0, 0, 3, 0, 0, 1)
 
@@ -113,8 +113,8 @@ def importFile(path, x, y, z, scale, xRota, yRota, zRota) -> nv.entity:
         file_path=path,
         position=(x, y, z),
         scale=(scale, scale, scale),
-        rotation= nv.angleAxis(nv.pi() * .5, (xRota, yRota, zRota)),
-        args=[] #"verbose"]
+        rotation=nv.angleAxis(nv.pi() * .5, (xRota, yRota, zRota)),
+        args=[]  # "verbose"]
     )
     return scene
 
@@ -152,11 +152,13 @@ def createFloor():
 # main function to create a light
 def createLight(index):
     nameL = "light" + str(index)
-    x = rng.choice(range_x * 2, size=1, replace=False)[0] - xyOffset
-    y = rng.choice(range_y * 2, size=1, replace=False)[0] - xyOffset
-    z = rng.choice(range_z, size=1, replace=False)[0] - zOffset
-    temperature = rng.choice(range_temperature, size=1, replace=False)[0] + 1
-    intensity = rng.choice(range_intensity, size=1, replace=False)[0] + 1
+    x = rng.choice(variables.range_x * 2, size=1, replace=False)[0] - variables.xyOffset
+    y = rng.choice(variables.range_y * 2, size=1, replace=False)[0] - variables.xyOffset
+    z = rng.choice(variables.range_z, size=1, replace=False)[0] - variables.zOffset
+    temperature = rng.choice(variables.range_temperature, size=1, replace=False)[0] + 1
+    intensity = rng.choice(variables.range_intensity, size=1, replace=False)[0] + 1
+    exposure = (rng.choice(200, size=1, replace=False)[0] - 100) / 100
+    falloff = (rng.choice(200, size=1, replace=False)[0]) / 100
     light = nv.entity.create(
         name=nameL,
         light=nv.light.create(nameL),
@@ -168,9 +170,11 @@ def createLight(index):
     temp = nv.light.get(nameL)
     temp.set_temperature(temperature)
     temp.set_intensity(intensity)
+    temp.set_exposure(exposure)
+    temp.set_falloff(falloff)
     # DEBUG
     if DEBUG:
-        print(nameL, x, y, z, temperature, intensity)
+        print(nameL, x, y, z, temperature, intensity, exposure, falloff)
 
 
 # creates a specific light (with exact location etc.)
@@ -194,26 +198,24 @@ def createSpecLight(index, x, y, z, temperature, intensity):
 
 # main function to create an object (splits into sub functions)
 def createObj(type, index, hue, givenMat):
-    (x,y) = calcRandPosition()
-    (r, g, b) = colorsys.hsv_to_rgb(hue/179, 1.0, 1.0)
+    (x, y) = calcRandPosition()
+    (r, g, b) = colorsys.hsv_to_rgb(hue / 179, 1.0, 1.0)
     if type == 0:
         createCone(index, x, y, r, g, b, givenMat)
-    elif type > 0 and type <= 4:
+    elif 0 < type <= 4:
         createSphere(index, x, y, r, g, b, givenMat)
-    elif type > 4 and type <= 8:
+    elif 4 < type <= 8:
         createBox(index, x, y, r, g, b, givenMat)
     else:
         createCylinder(index, x, y, r, g, b, givenMat)
 
 
-
 # calculating a random position for the objects to set to
 def calcRandPosition() -> (float, float):
-    xObj = 300
-    x = rng.choice(xObj * 2, size=1, replace=False)[0] - xObj
+    xObj = variables.distance * 100
+    x = rng.choice(xObj, size=1, replace=False)[0] + 1
     y = rng.choice(xObj, size=1, replace=False)[0] + 1
-    return x/100, y/100
-
+    return x / 100, y / 100
 
 
 # creating a cone for the scene
@@ -230,7 +232,7 @@ def createCone(index, x, y, r, g, b, givenMat):
     if givenMat == None:
         obj.get_material().set_base_color((r, g, b))
         roughness = rng.choice(10, size=1, replace=False)[0]
-        obj.get_material().set_roughness(roughness/10)
+        obj.get_material().set_roughness(roughness / 10)
         # Objects can be made to be "alpha transparent", which simulates little holes in the
         # mesh that let light through. The smaller the alpha, the more little holes.
         obj.get_material().set_alpha(1.0)
@@ -317,7 +319,7 @@ def getMatArray(maxCount) -> []:
         if DEBUG:
             print(tempPath)
         res.append(setupMat(tempPath, item))
-        i = i+1
+        i = i + 1
         if i >= maxCount:
             break
     random.shuffle(res)
@@ -326,9 +328,9 @@ def getMatArray(maxCount) -> []:
 
 # sets up a material for the given path (see materials for examples of files)
 def setupMat(path, item) -> nv.material:
-    tex_ao = nv.texture.create_from_file(item + "_tex_ao", path+"ao.png")
-    tex_rough = nv.texture.create_from_file(item + "_tex_rou", path+"rough.png")
-    tex_normal = nv.texture.create_from_file(item + "_tex_nor", path+"nor_gl.png")
+    tex_ao = nv.texture.create_from_file(item + "_tex_ao", path + "ao.png")
+    tex_rough = nv.texture.create_from_file(item + "_tex_rou", path + "rough.png")
+    tex_normal = nv.texture.create_from_file(item + "_tex_nor", path + "nor_gl.png")
 
     temp_mat = nv.material.create(item + '_temp_mat')
     temp_mat.set_ior_texture(tex_ao)
@@ -341,16 +343,18 @@ def setupMat(path, item) -> nv.material:
         temp_mat.set_subsurface_texture(tex_diff)
         temp_mat.set_base_color_texture(tex_diff)
     if "color.png" in tempArr:
-        tex_col = nv.texture.create_from_file(item + "_tex_col", path+"color.png")
-        temp_mat. set_base_color_texture(tex_col)
+        tex_col = nv.texture.create_from_file(item + "_tex_col", path + "color.png")
+        temp_mat.set_base_color_texture(tex_col)
     if "spec.png" in tempArr:
-        tex_spec = nv.texture.create_from_file(item + "_tex_spec", path+"spec.png")
+        tex_spec = nv.texture.create_from_file(item + "_tex_spec", path + "spec.png")
         temp_mat.set_specular_texture(tex_spec)
 
     # displacement not working properly with light rendering, so I disabled it
-    #if "disp.png" in tempArr:
+    # if "disp.png" in tempArr:
     #    tex_disp = nv.texture.create_from_file(item + "_tex_disp", path+"disp.png")
     #    tex_multi_nor_disp = nv.texture.create_multiply(item + "_tex_multi", tex_normal, tex_disp)
     #    temp_mat.set_normal_map_texture(tex_multi_nor_disp)
 
     return temp_mat
+
+
