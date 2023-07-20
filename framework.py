@@ -15,13 +15,15 @@ def main(sceneIndex):
     createCamera(0.78, camX, camY, camZ)
 
     # -------- Set the sky/dome --------
-    if HDRIs:
+    if variables.HDRIs:
         setDome(hdrArray[sceneIndex % len(hdrArray)], True)
     else:
         setDomeSky()
 
     # -------- table --------
     importTable()
+    # for importing other things, please use importFile()
+    # importFile(path, x, y, z, scale, xRota, yRota, zRota)
 
     # -------- robo arm --------
     createRoboArm()
@@ -108,7 +110,7 @@ setupInput()
 print("\n...loading HDRIs...")
 hdrArray = scanDir("./HDRs", True)
 if len(hdrArray) > 0:
-    HDRIs = True
+    variables.HDRIs = True
     random.shuffle(hdrArray)
 
 print("...loading materials...")

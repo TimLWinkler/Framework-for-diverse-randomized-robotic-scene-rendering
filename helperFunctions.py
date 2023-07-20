@@ -123,6 +123,7 @@ def createRoboArm():
 
 
 # importing an object via pathname at x, y, z with given scale
+# this returns a scene so to access specific objects, you need to loop through the scene
 def importFile(path, x, y, z, scale, xRota, yRota, zRota) -> nv.entity:
     scene = nv.import_scene(
         file_path=path,
