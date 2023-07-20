@@ -43,15 +43,15 @@ def expressModeHandle(argList):
     start = 0
     objectsFlag = False
     lightFlag = False
-    if len(argList) != 12:
+    if len(argList) != 13:
         print("Arguments did not match expected amount")
         raise InputErrorException(1)
     for index, elem in enumerate(argList, start):
         if variables.DEBUG: print(elem)
-        # EVAL y/n -> Eval type set to both
-        if index == 0 and elem == "y":
+        # EVAL n/0,1,2 -> Eval type set to both
+        if index == 0 and elem != "n":
             variables.EVAL = True
-            variables.scoreType = 2
+            variables.scoreType = int(elem)
         elif index == 0 and elem == "n":
             variables.EVAL = False
         # renSamples int
@@ -65,33 +65,38 @@ def expressModeHandle(argList):
         # amountScene int
         elif index == 3:
             variables.amountScene = int(elem)
+        # MultiCam n/int
+        elif index == 4 and elem != "n":
+            variables.multiCam = True
+            variables.amountCameras = int(elem)
+            variables.scoreType = 2
         # EXTRA y/n
-        elif index == 4 and elem == "y":
+        elif index == 5 and elem == "y":
             variables.EXTRA = True
-        elif index == 4 and elem == "n":
+        elif index == 5 and elem == "n":
             variables.EXTRA = False
         # maxObjects Min Max int
-        elif index == 5:
+        elif index == 6:
             if int(elem) < int(argList[index + 1]):
                 variables.maxObjects = variables.rng.choice(a=int(argList[index + 1]), size=2, replace=False) + int(elem)
                 objectsFlag = True
-        elif objectsFlag and index == 6:
+        elif objectsFlag and index == 7:
             continue
         # maxLights Min Maxint
-        elif index == 7:
+        elif index == 8:
             if int(elem) < int(argList[index + 1]):
                 variables.maxLights = variables.rng.choice(a=int(argList[index + 1]), size=2, replace=False) + int(elem)
                 lightFlag = True
-        elif lightFlag and index == 8:
+        elif lightFlag and index == 9:
             continue
         # light intensity range int
-        elif index == 9:
+        elif index == 10:
             variables.range_intensity = int(elem)
         # light temperature range int
-        elif index == 10:
+        elif index == 11:
             variables.range_temperature = int(elem)
         # distance int
-        elif index == 11:
+        elif index == 12:
             variables.distance = int(elem)
 
         else:
@@ -148,6 +153,13 @@ def costumeInput():
     inputSceneAmount = input("Enter amount of scenes (e.g. 5): ")
     variables.amountScene = int(inputSceneAmount)
 
+    # input amount of cams to get rendered in one scene n/int
+    inputCamAmount = input("Enter amount of cameras for one scene ('n' means 1, >1 else): ")
+    if inputCamAmount != "n":
+        variables.multiCam = True
+        variables.amountCam = int(inputSceneAmount)
+        variables.scoreType = 2
+
     # input for extra (dark and bright) render
     inputExtra = input("Enter 'y' if we shall render two extra scenes (one extra dark, one extra bright): ")
     if inputExtra == "y":
@@ -156,12 +168,12 @@ def costumeInput():
     # input min and max amount of objects
     inputMinObj = input("Enter minimum amount of objects (e.g. 1): ")
     inputMaxObj = input("Enter maximum amount of objects (e.g. 7): ")
-    variables.maxObjects = variables.rng.choice(a=inputMaxObj, size=1, replace=False) + inputMinObj
+    variables.maxObjects = variables.rng.choice(a=int(inputMaxObj), size=1, replace=False) + int(inputMinObj)
 
     # input min and max amount of lights
     inputMinLights = input("Enter minimum amount of lights (e.g. 1): ")
     inputMaxLights = input("Enter maximum amount of lights (e.g. 7): ")
-    variables.maxLights = variables.rng.choice(a=inputMaxLights, size=1, replace=False) + inputMinLights
+    variables.maxLights = variables.rng.choice(a=int(inputMaxLights), size=1, replace=False) + int(inputMinLights)
 
     # input range for intensity (light)
     inputIntensity = input("Enter maximum for light intensity (e.g. 50): ")

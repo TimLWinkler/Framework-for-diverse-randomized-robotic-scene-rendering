@@ -8,6 +8,7 @@ HDRIs = False
 EVAL = False
 EXTRA = False
 denoiseFlag = True
+multiCam = False
 
 # render stuff
 renWidth = 1500
@@ -19,8 +20,8 @@ rng = numpy.random.default_rng()
 
 # maximum scenes, lights, objects and amount of cameras
 amountScene = 2
+amountCameras = 2
 maxLights, maxObjects = rng.choice(a=7, size=2, replace=False) + 1
-amountCameras = 4
 
 
 # for coordinates distance to origin (0, 0, 0)
@@ -43,3 +44,5 @@ lookAtY = 0
 
 # evaluation Type
 scoreType = 2
+
+importArray = []

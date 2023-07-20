@@ -1,20 +1,18 @@
 import nvisii as nv
-import numpy.random
 
-from helperFunctions import *
-import variables
-from evaluation import *
-from inputHandler import *
+from evaluation import *        # imports helperFunctions too
+from inputHandler import *      # imports variables too
 
 
-# position check (clipping) but its not in focus for the project
+# position check (clipping) but it is not in focus for the project
 
 def main(sceneIndex):
     nv.clear_all()
     print("\n\n...building the scene ", str(sceneIndex) + "...")
 
     # -------- camera (FOV, x, y, z) --------
-    createCamera(0.78, 6, 9, 3)
+    camX, camY, camZ = randomCamCoor()
+    createCamera(0.78, camX, camY, camZ)
 
     # -------- Set the sky/dome --------
     if HDRIs:
@@ -33,8 +31,11 @@ def main(sceneIndex):
 
     # -------- rendering --------
     print("\n...start rendering...")
-    name_render = "renders/render" + str(sceneIndex)
-    render(name_render, renWidth, renHeight, variables.renSamples, variables.denoiseFlag)
+    if variables.multiCam:
+        handleMultiCam(sceneIndex, camX, camY, camZ)
+    else:
+        path = "renders/render" + str(sceneIndex)
+        render(path, renWidth, renHeight, variables.renSamples, variables.denoiseFlag)
 
 
 # render dark image
@@ -43,7 +44,8 @@ def darkImage():
     print("\n\n...building dark image--")
 
     # -------- camera --------
-    createCamera(0.78, 6, 9, 3)
+    camX, camY, camZ = randomCamCoor()
+    createCamera(0.78, camX, camY, camZ)
 
     nv.set_dome_light_intensity(0.01)
     nv.disable_dome_light_sampling()
@@ -58,7 +60,10 @@ def darkImage():
     # -------- creating lights and objects --------
     doLightsAndObjects(1, None)
 
-    render("renders/renderD", renWidth, renHeight, variables.renSamples, variables.denoiseFlag)
+    if variables.multiCam:
+        handleMultiCam("D", camX, camY, camZ)
+    else:
+        render("renders/renderD", renWidth, renHeight, variables.renSamples, variables.denoiseFlag)
 
 
 def brightImage():
@@ -66,7 +71,8 @@ def brightImage():
     print("\n\nbuilding bright image")
 
     # -------- camera --------
-    createCamera(0.78, 6, 9, 3)
+    camX, camY, camZ = randomCamCoor()
+    createCamera(0.78, camX, camY, camZ)
 
     nv.set_dome_light_intensity(5)
 
@@ -89,7 +95,10 @@ def brightImage():
 
     doLightsAndObjects(0, None)
 
-    render("renders/renderB", renWidth, renHeight, variables.renSamples, variables.denoiseFlag)
+    if variables.multiCam:
+        handleMultiCam("B", camX, camY, camZ)
+    else:
+        render("renders/renderB", renWidth, renHeight, variables.renSamples, variables.denoiseFlag)
 
 
 # main function
@@ -107,6 +116,10 @@ matArray = scanDir("./materials", False)
 
 print("...initializing scene creation...")
 nv.initialize(headless=True)
+
+if variables.multiCam:
+    setupMultiCam()
+
 for i in range(variables.amountScene):
     main(i)
 

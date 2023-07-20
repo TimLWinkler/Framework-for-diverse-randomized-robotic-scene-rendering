@@ -2,6 +2,8 @@ import nvisii as nv
 import colorsys
 import random
 import os
+import shutil
+from math import radians, cos, sin
 
 import variables
 from variables import *
@@ -20,6 +22,17 @@ def render(name, width, height, spp, denoise):
         file_path=name + ".png"
     )
     print("\nDONE ", name)
+
+
+def randomCamCoor() -> [int, int, int]:
+    camX, camY = rng.choice(5, 2, False) + 5
+    ranA, ranB = rng.choice(2, 2, False)
+    if ranA == 2:
+        camX = -camX
+    if ranB == 2:
+        camY = -camY
+    camZ = 3
+    return camX, camY, camZ
 
 
 # creating camera at given X, Y, Z and with given field of view
@@ -63,7 +76,8 @@ def setDome(hdr, cdf):
 # set up the dome if there are no HDR's -> randomly generated sky will be background
 def setDomeSky():
     sky_x, sky_y, sky_z = rng.choice(30, 3, False)
-    nv.set_dome_light_sky([sky_x - 15, sky_y - 15, sky_z - 8], [sky_x/3 - 3, sky_y/3 - 3, sky_z/3 - 3], rng.random(1), rng.random(1))
+    nv.set_dome_light_sky([sky_x - 15, sky_y - 15, sky_z - 8], [sky_x / 3 - 3, sky_y / 3 - 3, sky_z / 3 - 3],
+                          rng.random(1), rng.random(1))
 
 
 # set up function to create lights and objects of given amount
@@ -97,6 +111,7 @@ def createRoboArm():
     # Left arm
     roboleft_rng = rng.choice(len(roboArray), size=1, replace=False)[0]
     path_left = "./objects/roboArm/" + roboArray[roboleft_rng]
+    # coordinates are optimized to fit on the table
     roboLeft = importFile(path_left, 1.5, 0, 0, 3, 0, 0, 1)
     # right arm
     roboright_rng = rng.choice(len(roboArray), size=1, replace=False)[0]
@@ -228,8 +243,8 @@ def createCone(index, x, y, r, g, b, givenMat):
         transform=nv.transform.create(nameCo),
         material=nv.material.create(nameCo)
     )
-    obj.get_transform().set_position((x, y, 0.25))
-    if givenMat == None:
+    obj.get_transform().set_position((x, y, 0))
+    if givenMat is None:
         obj.get_material().set_base_color((r, g, b))
         roughness = rng.choice(10, size=1, replace=False)[0]
         obj.get_material().set_roughness(roughness / 10)
@@ -250,8 +265,8 @@ def createSphere(index, x, y, r, g, b, givenMat):
         transform=nv.transform.create(nameSp),
         material=nv.material.create(nameSp)
     )
-    obj.get_transform().set_position((x, y, 0.25))
-    if givenMat == None:
+    obj.get_transform().set_position((x, y, 0))
+    if givenMat is None:
         obj.get_material().set_base_color((r, g, b))
         roughness = rng.choice(10, size=1, replace=False)[0]
         obj.get_material().set_roughness(roughness / 10)
@@ -272,7 +287,7 @@ def createCylinder(index, x, y, r, g, b, givenMat):
         transform=nv.transform.create(nameCy),
         material=nv.material.create(nameCy)
     )
-    obj.get_transform().set_position((x, y, 0.25))
+    obj.get_transform().set_position((x, y, 0))
     if givenMat == None:
         obj.get_material().set_base_color((r, g, b))
         roughness = rng.choice(10, size=1, replace=False)[0]
@@ -294,7 +309,7 @@ def createBox(index, x, y, r, g, b, givenMat):
         transform=nv.transform.create(nameBx),
         material=nv.material.create(nameBx)
     )
-    obj.get_transform().set_position((x, y, 0.25))
+    obj.get_transform().set_position((x, y, 0))
     if givenMat == None:
         obj.get_material().set_base_color((r, g, b))
         roughness = rng.choice(10, size=1, replace=False)[0]
@@ -358,3 +373,44 @@ def setupMat(path, item) -> nv.material:
     return temp_mat
 
 
+# setting up the multi cam render
+def setupMultiCam():
+    path = "./renders/multiCam"
+    try:
+        shutil.rmtree(path)
+    except OSError as error:
+        # no dir found
+        pass
+    try:
+        os.mkdir(path)
+    except OSError as error:
+        # do not know why it would not work
+        pass
+    for cam in range(variables.amountScene):
+        sceneDir = path + "/scene" + str(cam)
+        os.mkdir(sceneDir)
+    # dark and bright image directory
+    if variables.EXTRA:
+        sceneDir = path + "/sceneD"
+        os.mkdir(sceneDir)
+        sceneDir = path + "/sceneB"
+        os.mkdir(sceneDir)
+
+
+# try to clear and reset all directories for the renders
+def handleMultiCam(sceneIndex, camX, camY, camZ):
+    theta = radians(360)
+    alpha = theta / variables.amountCameras
+    for cam in range(variables.amountCameras):
+        path = "./renders/multiCam/scene" + str(sceneIndex) + "/render" + str(cam)
+        # relocating camera
+        angle = cam * alpha
+        camX = lookAtX + cos(angle) * (camX - lookAtX) - sin(angle) * (camY - lookAtY)
+        camY = lookAtY + sin(angle) * (camX - lookAtX) + cos(angle) * (camY - lookAtY)
+        camera = nv.entity.get("camera")
+        camera.get_transform().look_at(
+            at=[lookAtX, lookAtY, .75],
+            up=[0, 0, 1],
+            eye=[camX, camY, camZ]
+        )
+        render(path, renWidth, renHeight, variables.renSamples, variables.denoiseFlag)
