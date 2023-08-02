@@ -55,7 +55,7 @@ More variables are listed in the [variables.py](https://github.com/TimLWinkler/F
 Evaluation: boolean if you want an evaluation.
 'n' for no evaluation, '0' for evaluation with SSIM, '1' for FID-Score and '2' for both SSIM and FID-Score
 
-- Rendering Samples: Integer for how many sampling per pixel will be casted.
+- Rendering Samples: Integer for how many sampling per pixel will be cast.
 
 - Denoising: boolean if denoising should be active ('y') or not ('n')
 
