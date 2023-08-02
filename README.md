@@ -1,6 +1,5 @@
 # A Framework for diverse randomized robotic scene rendering
 
-<<<<<<< HEAD
 This framework got created to generate more diverse synthetic data for any Machine Learning or Robotic project.
 We mainly coded in Python.
 
@@ -92,7 +91,3 @@ To insure the usage of the new HDRI, you need to either manually set it as a dom
 - Materials:
 New materials can be set by placing the new material inside the 'materials' folder.
 The new material has to have at least an image of ambient occlusion ('ao.png'), roughness ('rough.png') and normal ('nor_gl.png') to function.
-
-=======
-This README will be added in the furture
->>>>>>> 4b795c1de255402cf2777b6c908696d54b01ccdc
